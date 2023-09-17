@@ -116,59 +116,81 @@ def bot(state_dict: Dict, history: List) -> List:
 
 if __name__ == '__main__':
     config = get_config()
-    with gr.Blocks(theme=gr.themes.Base()) as block:
+
+    # Custom Css
+    custom_css = """
+        #chatbot {
+            height: calc(100vh - 240px) !important;
+        }
+        """
+
+    with gr.Blocks(theme=gr.themes.Base(), css=custom_css) as block:
         """
         Reference: https://www.gradio.app/guides/creating-a-chatbot-fast
         """
         # UI components
         state = gr.State(value={"bot_backend": None})
-        with gr.Tab("Chat"):
-            chatbot = gr.Chatbot([], elem_id="chatbot", label="Local Code Interpreter", height=750)
+
+        with gr.Tab("对话"):
+            chatbot = gr.Chatbot([], elem_id="chatbot",
+                                 label="Code Interpreter")
             with gr.Row():
                 with gr.Column(scale=0.85):
                     text_box = gr.Textbox(
                         show_label=False,
-                        placeholder="Enter text and press enter, or upload a file",
+                        placeholder="输入文本并按 Enter 键，或上传文件",
                         container=False
                     )
                 with gr.Column(scale=0.15, min_width=0):
-                    file_upload_button = gr.UploadButton("📁", file_types=['file'])
+                    file_upload_button = gr.UploadButton(
+                        "📁", file_types=['file'])
             with gr.Row(equal_height=True):
                 with gr.Column(scale=0.7):
-                    check_box = gr.Checkbox(label="Use GPT-4", interactive=config['model']['GPT-4']['available'])
-                    check_box.change(fn=switch_to_gpt4, inputs=[state, check_box])
+                    check_box = gr.Checkbox(
+                        label="使用 GPT-4", interactive=config['model']['GPT-4']['available'], value=True)
+                    check_box.change(fn=switch_to_gpt4,
+                                     inputs=[state, check_box])
                 with gr.Column(scale=0.15, min_width=0):
-                    restart_button = gr.Button(value='🔄 Restart')
+                    restart_button = gr.Button(value='🔄 重新开始')
                 with gr.Column(scale=0.15, min_width=0):
-                    undo_file_button = gr.Button(value="↩️Undo upload file", interactive=False)
-        with gr.Tab("Files"):
+                    undo_file_button = gr.Button(
+                        value="↩️撤销上传文件", interactive=False)
+        with gr.Tab("文件"):
             file_output = gr.Files()
 
         # Components function binding
         txt_msg = text_box.submit(add_text, [state, chatbot, text_box], [chatbot, text_box], queue=False).then(
             bot, [state, chatbot], chatbot
         )
-        txt_msg.then(fn=refresh_file_display, inputs=[state], outputs=[file_output])
-        txt_msg.then(lambda: gr.update(interactive=True), None, [text_box], queue=False)
-        txt_msg.then(lambda: gr.Button.update(interactive=False), None, [undo_file_button], queue=False)
+        txt_msg.then(fn=refresh_file_display, inputs=[
+                     state], outputs=[file_output])
+        txt_msg.then(lambda: gr.update(interactive=True),
+                     None, [text_box], queue=False)
+        txt_msg.then(lambda: gr.Button.update(interactive=False),
+                     None, [undo_file_button], queue=False)
 
         file_msg = file_upload_button.upload(
-            add_file, [state, chatbot, file_upload_button], [chatbot], queue=False
+            add_file, [state, chatbot, file_upload_button], [
+                chatbot], queue=False
         ).then(
             bot, [state, chatbot], chatbot
         )
-        file_msg.then(lambda: gr.Button.update(interactive=True), None, [undo_file_button], queue=False)
-        file_msg.then(fn=refresh_file_display, inputs=[state], outputs=[file_output])
+        file_msg.then(lambda: gr.Button.update(interactive=True),
+                      None, [undo_file_button], queue=False)
+        file_msg.then(fn=refresh_file_display, inputs=[
+                      state], outputs=[file_output])
 
         undo_file_button.click(
-            fn=undo_upload_file, inputs=[state, chatbot], outputs=[chatbot, undo_file_button]
+            fn=undo_upload_file, inputs=[state, chatbot], outputs=[
+                chatbot, undo_file_button]
         ).then(
             fn=refresh_file_display, inputs=[state], outputs=[file_output]
         )
 
         restart_button.click(
             fn=restart_ui, inputs=[chatbot],
-            outputs=[chatbot, text_box, restart_button, file_upload_button, undo_file_button]
+            outputs=[chatbot, text_box, restart_button,
+                     file_upload_button, undo_file_button]
         ).then(
             fn=restart_bot_backend, inputs=[state], queue=False
         ).then(
@@ -178,7 +200,6 @@ if __name__ == '__main__':
                         gr.Button.update(interactive=True)),
             inputs=None, outputs=[text_box, restart_button, file_upload_button], queue=False
         )
-
         block.load(fn=initialization, inputs=[state])
 
     block.queue()
