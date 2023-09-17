@@ -18,3 +18,4 @@ python-docx
 pymunk
 pygame
 manim
+ffmpeg-python
