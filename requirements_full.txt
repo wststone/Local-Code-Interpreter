@@ -16,3 +16,4 @@ sympy
 scikit-learn
 python-docx
 pymunk
+pygame
