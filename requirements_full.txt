@@ -17,3 +17,4 @@ scikit-learn
 python-docx
 pymunk
 pygame
+manim
