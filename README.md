@@ -118,3 +118,8 @@ Imagine uploading a data file and requesting the model to perform linear regress
 
 
 
+## List of dependecies might need
+
+- xdg-utils
+
+- ffmpeg
