@@ -64,13 +64,16 @@ def undo_upload_file(state_dict: Dict, history: List) -> Tuple[List, Dict]:
 def refresh_file_display(state_dict: Dict) -> List[str]:
     bot_backend = get_bot_backend(state_dict)
     work_dir = bot_backend.jupyter_work_dir
-    filenames = os.listdir(work_dir)
-    paths = []
-    for filename in filenames:
-        paths.append(
-            os.path.join(work_dir, filename)
-        )
-    return paths
+
+    def list_files_recursive(directory: str) -> List[str]:
+        """Recursively list all files in the given directory."""
+        paths = []
+        for root, _, files in os.walk(directory):
+            for filename in files:
+                paths.append(os.path.join(root, filename))
+        return paths
+
+    return list_files_recursive(work_dir)
 
 
 def restart_ui(history: List) -> Tuple[List, Dict, Dict, Dict, Dict]:
