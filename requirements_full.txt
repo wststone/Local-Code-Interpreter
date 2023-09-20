@@ -19,3 +19,4 @@ pymunk
 pygame
 manim
 ffmpeg-python
+pylatex
