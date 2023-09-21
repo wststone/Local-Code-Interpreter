@@ -118,7 +118,7 @@ def bot(state_dict: Dict, history: List) -> List:
 
 
 auto_focus_script = """
-    document.querySelector("textarea").focus();
+() => document.querySelector("textarea").focus()
 """
 
 
