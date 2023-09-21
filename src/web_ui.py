@@ -118,17 +118,7 @@ def bot(state_dict: Dict, history: List) -> List:
 
 
 auto_focus_script = """
-    let observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-        if (mutation.type == "childList") {
-            // Refocus the input element here
-            document.querySelector("textarea").focus();
-        }
-        });
-    });
-
-    let config = { childList: true, characterData: true };
-    observer.observe(document.querySelector(".message-wrap"), config);
+    document.querySelector("textarea").focus();
 """
 
 
@@ -187,7 +177,7 @@ if __name__ == '__main__':
         txt_msg.then(lambda: gr.update(interactive=True),
                      None, [text_box], queue=False)
         txt_msg.then(lambda: gr.Button.update(interactive=False),
-                     None, [undo_file_button], queue=False)
+                     None, [undo_file_button], queue=False, _js=auto_focus_script)
 
         file_msg = file_upload_button.upload(
             add_file, [state, chatbot, file_upload_button], [
@@ -220,7 +210,7 @@ if __name__ == '__main__':
                         gr.Button.update(interactive=True)),
             inputs=None, outputs=[text_box, restart_button, file_upload_button], queue=False
         )
-        block.load(fn=initialization, inputs=[state], _js=auto_focus_script)
+        block.load(fn=initialization, inputs=[state])
 
     block.queue()
     block.launch(inbrowser=True)
