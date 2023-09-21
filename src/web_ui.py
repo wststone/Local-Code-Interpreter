@@ -117,6 +117,21 @@ def bot(state_dict: Dict, history: List) -> List:
     yield history
 
 
+auto_focus_script = """
+    let observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+        if (mutation.type == "childList") {
+            // Refocus the input element here
+            document.querySelector("textarea").focus();
+        }
+        });
+    });
+
+    let config = { childList: true, characterData: true };
+    observer.observe(document.querySelector(".message-wrap"), config);
+"""
+
+
 if __name__ == '__main__':
     config = get_config()
 
@@ -136,7 +151,7 @@ if __name__ == '__main__':
 
         with gr.Tab("对话"):
             chatbot = gr.Chatbot([], elem_id="chatbot",
-                                 label="Code Interpreter")
+                                 label="Code Interpreter",)
             with gr.Row():
                 with gr.Column(scale=0.85):
                     text_box = gr.Textbox(
@@ -160,6 +175,8 @@ if __name__ == '__main__':
                         value="↩️撤销上传文件", interactive=False)
         with gr.Tab("文件"):
             file_output = gr.Files()
+        with gr.Tab("收藏"):
+            gr.Row(equal_height=True)
 
         # Components function binding
         txt_msg = text_box.submit(add_text, [state, chatbot, text_box], [chatbot, text_box], queue=False).then(
@@ -203,7 +220,7 @@ if __name__ == '__main__':
                         gr.Button.update(interactive=True)),
             inputs=None, outputs=[text_box, restart_button, file_upload_button], queue=False
         )
-        block.load(fn=initialization, inputs=[state])
+        block.load(fn=initialization, inputs=[state], _js=auto_focus_script)
 
     block.queue()
     block.launch(inbrowser=True)
