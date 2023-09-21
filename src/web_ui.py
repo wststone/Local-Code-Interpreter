@@ -64,13 +64,17 @@ def undo_upload_file(state_dict: Dict, history: List) -> Tuple[List, Dict]:
 def refresh_file_display(state_dict: Dict) -> List[str]:
     bot_backend = get_bot_backend(state_dict)
     work_dir = bot_backend.jupyter_work_dir
+    accepted_file_types = ["xlsx", "csv", "mp4", "mp3",
+                           "jpg", "jpeg", "doc", "docx", "png", "txt", "pdf"]
 
     def list_files_recursive(directory: str) -> List[str]:
         """Recursively list all files in the given directory."""
         paths = []
         for root, _, files in os.walk(directory):
             for filename in files:
-                paths.append(os.path.join(root, filename))
+                file_extension = os.path.splitext(filename)[1]
+                if (file_extension in accepted_file_types):
+                    paths.append(os.path.join(root, filename))
         return paths
 
     return list_files_recursive(work_dir)
@@ -121,7 +125,7 @@ auto_focus_script = """
 () => {
     window.setTimeout(() => {
       document.querySelector("textarea").focus()  
-    }, 250)
+    }, 500)
 }
 """
 
@@ -169,8 +173,9 @@ if __name__ == '__main__':
                         value="↩️撤销上传文件", interactive=False)
         with gr.Tab("文件"):
             file_output = gr.Files()
-        with gr.Tab("收藏"):
-            gr.Row(equal_height=True)
+        # with gr.Tab("收藏"):
+        #     with gr.Column():
+        #         gr.Text()
 
         # Components function binding
         txt_msg = text_box.submit(add_text, [state, chatbot, text_box], [chatbot, text_box], queue=False).then(
@@ -179,9 +184,9 @@ if __name__ == '__main__':
         txt_msg.then(fn=refresh_file_display, inputs=[
                      state], outputs=[file_output])
         txt_msg.then(lambda: gr.update(interactive=True),
-                     None, [text_box], queue=False)
+                     None, [text_box], queue=False, _js=auto_focus_script)
         txt_msg.then(lambda: gr.Button.update(interactive=False),
-                     None, [undo_file_button], queue=False, _js=auto_focus_script)
+                     None, [undo_file_button], queue=False)
 
         file_msg = file_upload_button.upload(
             add_file, [state, chatbot, file_upload_button], [
