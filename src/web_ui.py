@@ -1,5 +1,6 @@
 from response_parser import *
 import gradio as gr
+import os
 
 
 def initialization(state_dict: Dict) -> None:
@@ -64,7 +65,7 @@ def undo_upload_file(state_dict: Dict, history: List) -> Tuple[List, Dict]:
 def refresh_file_display(state_dict: Dict) -> List[str]:
     bot_backend = get_bot_backend(state_dict)
     work_dir = bot_backend.jupyter_work_dir
-    accepted_file_types = ["xlsx", "csv", "mp4", "mp3",
+    accepted_file_types = [".xlsx", "csv", "mp4", "mp3",
                            "jpg", "jpeg", "doc", "docx", "png", "txt", "pdf"]
 
     def list_files_recursive(directory: str) -> List[str]:
@@ -72,7 +73,7 @@ def refresh_file_display(state_dict: Dict) -> List[str]:
         paths = []
         for root, _, files in os.walk(directory):
             for filename in files:
-                file_extension = os.path.splitext(filename)[1]
+                file_extension = os.path.splitext(filename)[1].lstrip('.')
                 if (file_extension in accepted_file_types):
                     paths.append(os.path.join(root, filename))
         return paths
