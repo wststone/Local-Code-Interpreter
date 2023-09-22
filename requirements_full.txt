@@ -17,6 +17,6 @@ scikit-learn
 python-docx
 pymunk
 pygame
-manim
+manim==0.17.3
 ffmpeg-python
 pylatex
