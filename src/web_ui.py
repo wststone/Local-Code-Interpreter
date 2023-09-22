@@ -99,7 +99,7 @@ def restart_bot_backend(state_dict: Dict) -> None:
 
 def bot(state_dict: Dict, history: List) -> List:
     bot_backend = get_bot_backend(state_dict)
-
+    print(state_dict["stop_generation"])
     while bot_backend.finish_reason in ('new_input', 'function_call'):
         if history[-1][0] is None:
             history.append(
@@ -109,7 +109,13 @@ def bot(state_dict: Dict, history: List) -> List:
             history[-1][1] = ""
 
         response = chat_completion(bot_backend=bot_backend)
+
         for chunk in response:
+            if state_dict["stop_generation"]:
+                state_dict["stop_generation"] = False  # Reset the flag
+                # close response
+                response.close()
+                return
             history, weather_exit = parse_response(
                 chunk=chunk,
                 history=history,
@@ -120,6 +126,11 @@ def bot(state_dict: Dict, history: List) -> List:
                 exit(-1)
 
     yield history
+
+
+def stop_generating(state: gr.State):
+    print("Stop generating")
+    state["stop_generation"] = True
 
 
 auto_focus_script = """
@@ -146,32 +157,37 @@ if __name__ == '__main__':
         Reference: https://www.gradio.app/guides/creating-a-chatbot-fast
         """
         # UI components
-        state = gr.State(value={"bot_backend": None})
+        state = gr.State(value={"bot_backend": None, "stop_generation": False})
 
         with gr.Tab("对话"):
             chatbot = gr.Chatbot([], elem_id="chatbot",
-                                 label="Code Interpreter",)
+                                 label="Code Interpreter", show_copy_button=True)
             with gr.Row():
-                with gr.Column(scale=0.85):
+                with gr.Column(scale=12):
                     text_box = gr.Textbox(
                         show_label=False,
                         placeholder="输入文本并按 Enter 键，或上传文件",
                         container=False
                     )
-                with gr.Column(scale=0.15, min_width=0):
+                with gr.Column(scale=4, min_width=0):
+                    stop_button = gr.Button(
+                        value="⏹️ 停止生成",
+                        interactive=False
+                    )
+                with gr.Column(scale=1, min_width=0):
                     file_upload_button = gr.UploadButton(
                         "📁", file_types=['file'])
             with gr.Row(equal_height=True):
-                with gr.Column(scale=0.7):
+                with gr.Column(scale=15):
                     check_box = gr.Checkbox(
                         label="使用 GPT-4", interactive=config['model']['GPT-4']['available'], value=True)
                     check_box.change(fn=switch_to_gpt4,
                                      inputs=[state, check_box])
-                with gr.Column(scale=0.15, min_width=0):
+                with gr.Column(scale=3, min_width=0):
                     restart_button = gr.Button(value='🔄 重新开始')
-                with gr.Column(scale=0.15, min_width=0):
+                with gr.Column(scale=3, min_width=0):
                     undo_file_button = gr.Button(
-                        value="↩️撤销上传文件", interactive=False)
+                        value="↩️ 撤销上传文件", interactive=False)
         with gr.Tab("文件"):
             file_output = gr.Files()
         # with gr.Tab("收藏"):
@@ -180,6 +196,8 @@ if __name__ == '__main__':
 
         # Components function binding
         txt_msg = text_box.submit(add_text, [state, chatbot, text_box], [chatbot, text_box], queue=False).then(
+            lambda: gr.update(interactive=True), None, [stop_button], queue=False
+        ).then(
             bot, [state, chatbot], chatbot
         )
         txt_msg.then(fn=refresh_file_display, inputs=[
@@ -188,17 +206,21 @@ if __name__ == '__main__':
                      None, [text_box], queue=False, _js=auto_focus_script)
         txt_msg.then(lambda: gr.Button.update(interactive=False),
                      None, [undo_file_button], queue=False)
+        txt_msg.then(lambda: gr.update(interactive=False),
+                     None, [stop_button], queue=False)
 
         file_msg = file_upload_button.upload(
             add_file, [state, chatbot, file_upload_button], [
                 chatbot], queue=False
-        ).then(
+        ).then(lambda: gr.update(interactive=True), None, [stop_button], queue=False).then(
             bot, [state, chatbot], chatbot
         )
         file_msg.then(lambda: gr.Button.update(interactive=True),
                       None, [undo_file_button], queue=False)
         file_msg.then(fn=refresh_file_display, inputs=[
                       state], outputs=[file_output])
+        file_msg.then(lambda: gr.update(interactive=False),
+                      None, [stop_button], queue=False)
 
         undo_file_button.click(
             fn=undo_upload_file, inputs=[state, chatbot], outputs=[
@@ -220,6 +242,9 @@ if __name__ == '__main__':
                         gr.Button.update(interactive=True)),
             inputs=None, outputs=[text_box, restart_button, file_upload_button], queue=False
         )
+
+        stop_button.click(fn=stop_generating, inputs=[state], queue=False)
+
         block.load(fn=initialization, inputs=[state])
 
     block.queue()
