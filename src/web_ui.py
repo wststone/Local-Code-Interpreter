@@ -99,7 +99,7 @@ def restart_bot_backend(state_dict: Dict) -> None:
 
 def bot(state_dict: Dict, history: List) -> List:
     bot_backend = get_bot_backend(state_dict)
-    print(state_dict["stop_generation"])
+
     while bot_backend.finish_reason in ('new_input', 'function_call'):
         if history[-1][0] is None:
             history.append(
@@ -129,7 +129,6 @@ def bot(state_dict: Dict, history: List) -> List:
 
 
 def stop_generating(state: gr.State):
-    print("Stop generating")
     state["stop_generation"] = True
 
 
@@ -243,7 +242,8 @@ if __name__ == '__main__':
             inputs=None, outputs=[text_box, restart_button, file_upload_button], queue=False
         )
 
-        stop_button.click(fn=stop_generating, inputs=[state], queue=False)
+        stop_button.click(fn=stop_generating, inputs=[state], queue=False).then(lambda: gr.update(interactive=False),
+                                                                                None, [stop_button], queue=False)
 
         block.load(fn=initialization, inputs=[state])
 
