@@ -147,8 +147,13 @@ if __name__ == '__main__':
     # Custom Css
     custom_css = """
         #chatbot {
-            height: calc(100vh - 240px) !important;
+            height: calc(100vh - 280px) !important;
         }
+        textarea:fullscreen {
+            height: 100vh !important;
+            font-size: 1.5rem !important;
+        }
+        
         """
 
     with gr.Blocks(theme=gr.themes.Base(), css=custom_css) as block:
@@ -162,11 +167,22 @@ if __name__ == '__main__':
             chatbot = gr.Chatbot([], elem_id="chatbot",
                                  label="Code Interpreter", show_copy_button=True)
             with gr.Row():
-                with gr.Column(scale=12):
+                with gr.Column(scale=11):
                     text_box = gr.Textbox(
-                        show_label=False,
                         placeholder="输入文本并按 Enter 键，或上传文件",
-                        container=False
+                        autofocus=True,
+                        elem_id="textbox",
+                        max_lines=1000,
+                        elem_classes=["chatbot-textbox"],
+                        show_label=False,
+                        # container=True,
+                        # label="ai",
+                        # show_copy_button=True
+                    )
+                with gr.Column(scale=1, min_width=0):
+                    fullscreen_button = gr.Button(
+                        value="全屏输入",
+                        elem_id="fullscreen"
                     )
                 with gr.Column(scale=4, min_width=0):
                     stop_button = gr.Button(
@@ -244,6 +260,20 @@ if __name__ == '__main__':
 
         stop_button.click(fn=stop_generating, inputs=[state], queue=False).then(lambda: gr.update(interactive=False),
                                                                                 None, [stop_button], queue=False)
+
+        fullscreen_button.click(
+            None, [], None, _js="""() => {
+                const textboxContainer = document.getElementById('textbox')
+                const textbox = textboxContainer.querySelector('textarea')
+                textbox.requestFullscreen()
+                document.addEventListener('fullscreenchange', () => {
+                    const fullScreen = !!document.fullscreenElement
+                    if (!fullScreen) {
+                       textbox.style.height = '42px' 
+                    }
+                })
+                }
+                """)
 
         block.load(fn=initialization, inputs=[state])
 
